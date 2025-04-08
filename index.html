@@ -71,6 +71,7 @@
         </div>
     </div>
 
+    <!-- Script should be placed at the end of the body -->
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
@@ -118,10 +119,21 @@
             const chatBox = document.getElementById('chat-box');
             const messagesRef = ref(db, 'messages');
 
+            // Listen for changes in the messages node
             onValue(messagesRef, (snapshot) => {
                 chatBox.innerHTML = ''; // Clear current chat
+                const messages = [];
+
                 snapshot.forEach((childSnapshot) => {
                     const message = childSnapshot.val();
+                    messages.push(message);
+                });
+
+                // Sort messages by timestamp
+                messages.sort((a, b) => a.timestamp - b.timestamp);
+
+                // Display messages
+                messages.forEach(message => {
                     const messageElement = document.createElement('div');
                     messageElement.classList.add('message');
                     if (message.sender === "User") {
@@ -136,8 +148,11 @@
             });
         }
 
-        // Event listener for the send button
-        document.getElementById('send-button').addEventListener('click', sendMessage);
+        // Wait for the DOM to load and then add event listener for send button
+        document.addEventListener("DOMContentLoaded", function () {
+            // Attach the event listener after the DOM is ready
+            document.getElementById('send-button').addEventListener('click', sendMessage);
+        });
 
         // Initialize chat by displaying messages
         displayMessages();
