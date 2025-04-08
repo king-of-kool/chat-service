@@ -1,70 +1,165 @@
-// user.js
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
 
-// Firebase Configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyBsLbyZONGRIVbB8sU9YrzAzAc_BX9yKVk",
-    authDomain: "greenhill-chat-service.firebaseapp.com",
-    databaseURL: "https://greenhill-chat-service-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "greenhill-chat-service",
-    storageBucket: "greenhill-chat-service.firebasestorage.app",
-    messagingSenderId: "410106930178",
-    appId: "1:410106930178:web:a5cf1a9b3e152f1959731b",
-    measurementId: "G-7GEN0DF5KE"
-};
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
 
-// Initialize Firebase App
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const auth = firebase.auth();
+    <!-- Link to the user.js script -->
+    <script src="user.js" type="module"></script>
 
-// Sign Up Function
-function signUp(username, password) {
-    return auth.createUserWithEmailAndPassword(username + "@chat.com", password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            return { username: username };
-        })
-        .catch((error) => {
-            throw new Error("Sign-up failed: " + error.message);
+    <style>
+        /* Styling code from previous answer */
+    </style>
+</head>
+<body>
+
+    <!-- Login / Sign-Up Section -->
+    <div class="container" id="auth-container">
+        <h2>Login / Sign Up</h2>
+        <div class="form-group" id="username-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter your username" />
+        </div>
+        <div class="form-group" id="password-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter your password" />
+        </div>
+        <button id="login-btn">Login</button>
+        <div class="link" id="signup-link">
+            <a href="javascript:void(0)" id="switch-to-signup">Don't have an account? Sign up</a>
+        </div>
+    </div>
+
+    <!-- Chat Room Section -->
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <h2>Welcome to the Chat Room</h2>
+            <div id="chat-username"></div>
+        </div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="message-input" placeholder="Type a message..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // References to HTML elements
+        const authContainer = document.getElementById('auth-container');
+        const chatContainer = document.getElementById('chat-container');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-btn');
+        const signupLink = document.getElementById('switch-to-signup');
+        const sendButton = document.getElementById('send-button');
+        const messageInput = document.getElementById('message-input');
+        const chatBox = document.getElementById('chat-box');
+        const chatUsername = document.getElementById('chat-username');
+
+        let currentUser = null; // Current logged-in user
+
+        // Show sign-up form
+        signupLink.addEventListener('click', () => {
+            usernameInput.value = '';
+            passwordInput.value = '';
+            loginButton.textContent = "Sign Up";
+            signupLink.style.display = 'none';
+            document.getElementById('password-group').style.display = 'block';
         });
-}
 
-// Log In Function
-function logIn(username, password) {
-    return auth.signInWithEmailAndPassword(username + "@chat.com", password)
-        .then((userCredential) => {
-            const user = userCredential.user;
-            return { username: username };
-        })
-        .catch((error) => {
-            throw new Error("Login failed: " + error.message);
+        // Handle login/signup
+        loginButton.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                alert("Please fill in both fields.");
+                return;
+            }
+
+            try {
+                // Sign-Up or Log-In based on button text
+                if (loginButton.textContent === "Sign Up") {
+                    await signUp(username, password);  // Calls function from user.js
+                    currentUser = { username };
+                    localStorage.setItem('username', username);
+                    alert("Sign-up successful! You can now log in.");
+                    resetAuthForm();
+                    showChat();
+                } else {
+                    await logIn(username, password);  // Calls function from user.js
+                    currentUser = { username };
+                    localStorage.setItem('username', username);
+                    alert("Login successful!");
+                    resetAuthForm();
+                    showChat();
+                }
+            } catch (error) {
+                alert(error.message);
+            }
         });
-}
 
-// Fetch current user data
-function getCurrentUser() {
-    return auth.currentUser ? { username: auth.currentUser.email.split('@')[0] } : null;
-}
+        // Reset login/sign-up form
+        function resetAuthForm() {
+            authContainer.style.display = 'none';
+            usernameInput.value = '';
+            passwordInput.value = '';
+        }
 
-// Sign Out Function
-function signOut() {
-    return auth.signOut();
-}
+        // Show the chat room
+        function showChat() {
+            chatContainer.style.display = 'flex';
+            document.getElementById('chat-username').textContent = `Logged in as: ${currentUser.username}`;
+            loadMessages();
+        }
 
-// Fetch messages from Firebase
-function getMessages(callback) {
-    const messagesRef = db.ref('messages');
-    messagesRef.on('value', (snapshot) => {
-        const messages = snapshot.val() || {};
-        const sortedMessages = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
-        callback(sortedMessages);
-    });
-}
+        // Send message function
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                const message = {
+                    text: messageText,
+                    sender: currentUser.username,
+                    timestamp: new Date().getTime()
+                };
 
-// Push a message to Firebase
-function sendMessage(message) {
-    const messagesRef = db.ref('messages');
-    messagesRef.push(message);
-}
+                sendMessage(message);  // Calls function from user.js
 
-export { signUp, logIn, getCurrentUser, signOut, getMessages, sendMessage };
+                messageInput.value = ''; // Clear the input
+            }
+        });
+
+        // Load messages from Firebase Realtime Database
+        function loadMessages() {
+            getMessages((messages) => {  // Calls function from user.js
+                chatBox.innerHTML = ''; // Clear the chat box
+                messages.forEach((message) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    if (message.sender === currentUser.username) {
+                        messageElement.classList.add('sender');
+                    }
+                    messageElement.textContent = `${message.sender}: ${message.text}`;
+                    chatBox.appendChild(messageElement);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+            });
+        }
+
+        // Check if user is already logged in with Firebase
+        const savedUsername = localStorage.getItem('username');
+        if (savedUsername) {
+            currentUser = { username: savedUsername };
+            resetAuthForm();
+            showChat();
+        }
+    </script>
+
+</body>
+</html>
