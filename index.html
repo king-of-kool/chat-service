@@ -1,315 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room</title>
+// user.js
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBsLbyZONGRIVbB8sU9YrzAzAc_BX9yKVk",
+    authDomain: "greenhill-chat-service.firebaseapp.com",
+    databaseURL: "https://greenhill-chat-service-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "greenhill-chat-service",
+    storageBucket: "greenhill-chat-service.firebasestorage.app",
+    messagingSenderId: "410106930178",
+    appId: "1:410106930178:web:a5cf1a9b3e152f1959731b",
+    measurementId: "G-7GEN0DF5KE"
+};
 
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            flex-direction: column;
-        }
-        .container {
-            width: 450px;
-            max-width: 90%;
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-        h2 {
-            margin-bottom: 20px;
-            color: #00796b;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #00796b;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #004d40;
-        }
-        .link {
-            display: block;
-            text-align: center;
-            margin-top: 10px;
-        }
-        .link a {
-            color: #00796b;
-            text-decoration: none;
-        }
-        .link a:hover {
-            text-decoration: underline;
-        }
-        .chat-container {
-            display: none;
-            width: 100%;
-            height: 80vh;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            flex-direction: column;
-        }
-        .chat-header {
-            background-color: #00796b;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-        }
-        .chat-box {
-            flex: 1;
-            padding: 15px;
-            overflow-y: scroll;
-            border-bottom: 1px solid #ddd;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: 10px;
-            max-width: 70%;
-            background-color: #e0f7fa;
-            word-wrap: break-word;
-        }
-        .message.sender {
-            background-color: #c8e6c9;
-            margin-left: auto;
-        }
-        .input-area {
-            display: flex;
-            padding: 15px;
-            border-top: 1px solid #ddd;
-            background-color: #f1f1f1;
-        }
-        .input-area input {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            margin-right: 10px;
-            outline: none;
-        }
-        .input-area button {
-            padding: 12px 20px;
-            background-color: #00796b;
-            color: white;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-        }
-        .input-area button:hover {
-            background-color: #004d40;
-        }
-    </style>
-</head>
-<body>
+// Initialize Firebase App
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const auth = firebase.auth();
 
-    <!-- Login / Sign-Up Section -->
-    <div class="container" id="auth-container">
-        <h2>Login / Sign Up</h2>
-        <div class="form-group" id="username-group">
-            <label for="username">Username:</label>
-            <input type="text" id="username" placeholder="Enter your username" />
-        </div>
-        <div class="form-group" id="password-group">
-            <label for="password">Password:</label>
-            <input type="password" id="password" placeholder="Enter your password" />
-        </div>
-        <button id="login-btn">Login</button>
-        <div class="link" id="signup-link">
-            <a href="javascript:void(0)" id="switch-to-signup">Don't have an account? Sign up</a>
-        </div>
-    </div>
-
-    <!-- Chat Room Section -->
-    <div class="chat-container" id="chat-container">
-        <div class="chat-header">
-            <h2>Welcome to the Chat Room</h2>
-            <div id="chat-username"></div>
-        </div>
-        <div class="chat-box" id="chat-box"></div>
-        <div class="input-area">
-            <input type="text" id="message-input" placeholder="Type a message..." />
-            <button id="send-button">Send</button>
-        </div>
-    </div>
-
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBsLbyZONGRIVbB8sU9YrzAzAc_BX9yKVk",
-            authDomain: "greenhill-chat-service.firebaseapp.com",
-            databaseURL: "https://greenhill-chat-service-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "greenhill-chat-service",
-            storageBucket: "greenhill-chat-service.firebasestorage.app",
-            messagingSenderId: "410106930178",
-            appId: "1:410106930178:web:a5cf1a9b3e152f1959731b",
-            measurementId: "G-7GEN0DF5KE"
-        };
-
-        // Initialize Firebase App
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const auth = firebase.auth();
-
-        // References to HTML elements
-        const authContainer = document.getElementById('auth-container');
-        const chatContainer = document.getElementById('chat-container');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginButton = document.getElementById('login-btn');
-        const signupLink = document.getElementById('switch-to-signup');
-        const sendButton = document.getElementById('send-button');
-        const messageInput = document.getElementById('message-input');
-        const chatBox = document.getElementById('chat-box');
-        const chatUsername = document.getElementById('chat-username');
-
-        let currentUser = null; // Current logged-in user
-
-        // Show sign-up form
-        signupLink.addEventListener('click', () => {
-            usernameInput.value = '';
-            passwordInput.value = '';
-            loginButton.textContent = "Sign Up";
-            signupLink.style.display = 'none';
-            document.getElementById('password-group').style.display = 'block';
+// Sign Up Function
+function signUp(username, password) {
+    return auth.createUserWithEmailAndPassword(username + "@chat.com", password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            return { username: username };
+        })
+        .catch((error) => {
+            throw new Error("Sign-up failed: " + error.message);
         });
+}
 
-        // Handle login/signup
-        loginButton.addEventListener('click', () => {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value.trim();
-
-            if (!username || !password) {
-                alert("Please fill in both fields.");
-                return;
-            }
-
-            // Firebase Auth Sign-Up
-            if (loginButton.textContent === "Sign Up") {
-                auth.createUserWithEmailAndPassword(username + "@chat.com", password)
-                    .then((userCredential) => {
-                        const user = userCredential.user;
-                        currentUser = { username };
-                        localStorage.setItem('username', username);
-                        alert("Sign-up successful! You can now log in.");
-                        resetAuthForm();
-                        showChat();
-                    })
-                    .catch((error) => {
-                        alert("Error during sign up: " + error.message);
-                    });
-            } else {
-                // Firebase Auth Login
-                auth.signInWithEmailAndPassword(username + "@chat.com", password)
-                    .then((userCredential) => {
-                        currentUser = { username };
-                        localStorage.setItem('username', username);
-                        alert("Login successful!");
-                        resetAuthForm();
-                        showChat();
-                    })
-                    .catch((error) => {
-                        alert("Invalid username or password.");
-                    });
-            }
+// Log In Function
+function logIn(username, password) {
+    return auth.signInWithEmailAndPassword(username + "@chat.com", password)
+        .then((userCredential) => {
+            const user = userCredential.user;
+            return { username: username };
+        })
+        .catch((error) => {
+            throw new Error("Login failed: " + error.message);
         });
+}
 
-        // Reset login/sign-up form
-        function resetAuthForm() {
-            authContainer.style.display = 'none';
-            usernameInput.value = '';
-            passwordInput.value = '';
-        }
+// Fetch current user data
+function getCurrentUser() {
+    return auth.currentUser ? { username: auth.currentUser.email.split('@')[0] } : null;
+}
 
-        // Show the chat room
-        function showChat() {
-            chatContainer.style.display = 'flex';
-            document.getElementById('chat-username').textContent = `Logged in as: ${currentUser.username}`;
-            loadMessages();
-        }
+// Sign Out Function
+function signOut() {
+    return auth.signOut();
+}
 
-        // Send message function
-        sendButton.addEventListener('click', () => {
-            const messageText = messageInput.value.trim();
-            if (messageText) {
-                const message = {
-                    text: messageText,
-                    sender: currentUser.username,
-                    timestamp: new Date().getTime()
-                };
+// Fetch messages from Firebase
+function getMessages(callback) {
+    const messagesRef = db.ref('messages');
+    messagesRef.on('value', (snapshot) => {
+        const messages = snapshot.val() || {};
+        const sortedMessages = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp);
+        callback(sortedMessages);
+    });
+}
 
-                // Push the message to Firebase Realtime Database
-                const messagesRef = db.ref('messages');
-                messagesRef.push(message);
+// Push a message to Firebase
+function sendMessage(message) {
+    const messagesRef = db.ref('messages');
+    messagesRef.push(message);
+}
 
-                messageInput.value = ''; // Clear the input
-            }
-        });
-
-        // Load messages from Firebase Realtime Database
-        function loadMessages() {
-            const messagesRef = db.ref('messages');
-            messagesRef.on('value', (snapshot) => {
-                const messages = snapshot.val() || {};
-                chatBox.innerHTML = ''; // Clear the chat box
-                const sortedMessages = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp); // Sort messages by timestamp
-                sortedMessages.forEach((message) => {
-                    const messageElement = document.createElement('div');
-                    messageElement.classList.add('message');
-                    if (message.sender === currentUser.username) {
-                        messageElement.classList.add('sender');
-                    }
-                    messageElement.textContent = `${message.sender}: ${message.text}`;
-                    chatBox.appendChild(messageElement);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
-            });
-        }
-
-        // Check if user is already logged in with Firebase
-        auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = { username: user.email.split('@')[0] }; // Extract username from email
-                resetAuthForm();
-                showChat();
-            } else {
-                authContainer.style.display = 'flex';
-            }
-        });
-    </script>
-
-</body>
-</html>
+export { signUp, logIn, getCurrentUser, signOut, getMessages, sendMessage };
