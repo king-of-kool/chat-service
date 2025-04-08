@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 450px;
+            max-width: 90%;
+            height: 600px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background-color: #00796b;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .chat-box {
+            flex: 1;
+            padding: 15px;
+            overflow-y: scroll;
+            border-bottom: 1px solid #ddd;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            background-color: #e0f7fa;
+            word-wrap: break-word;
+        }
+        .message.sender {
+            background-color: #c8e6c9;
+            margin-left: auto;
+        }
+        .input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+            background-color: #f1f1f1;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            margin-right: 10px;
+            outline: none;
+        }
+        .input-area button {
+            padding: 12px 20px;
+            background-color: #00796b;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+        }
+        .input-area button:hover {
+            background-color: #004d40;
+        }
+        .input-area input:focus {
+            border: 2px solid #00796b;
+        }
+        .message-sender {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Chat Room</h2>
+            <div id="username-display"></div>
+        </div>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-area">
+            <input type="text" id="message-input" placeholder="Type a message..." />
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+
+    <script type="module">
+        // Simulate checking if the user is logged in (this could be based on session or Firebase)
+        const username = localStorage.getItem('username'); // Assume username is saved in localStorage after login
+        if (!username) {
+            alert("You are not logged in. Please log in first.");
+            window.location.href = "index.html"; // Redirect to login if not logged in
+        } else {
+            document.getElementById('username-display').textContent = `Logged in as: ${username}`;
+        }
+
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        // Function to send messages
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+
+            if (messageText) {
+                const message = {
+                    text: messageText,
+                    sender: username,
+                    timestamp: new Date().getTime()
+                };
+
+                // Store the message in local storage (for simplicity)
+                let messages = JSON.parse(localStorage.getItem('messages')) || [];
+                messages.push(message);
+                localStorage.setItem('messages', JSON.stringify(messages));
+
+                // Clear the input field
+                messageInput.value = '';
+
+                // Refresh the chat box
+                displayMessages();
+            }
+        }
+
+        // Function to display messages
+        function displayMessages() {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            chatBox.innerHTML = ''; // Clear chat box
+
+            // Sort messages by timestamp
+            messages.sort((a, b) => a.timestamp - b.timestamp);
+
+            // Display each message
+            messages.forEach(message => {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message');
+                if (message.sender === username) {
+                    messageElement.classList.add('sender');
+                }
+                messageElement.textContent = `${message.sender}: ${message.text}`;
+                chatBox.appendChild(messageElement);
+            });
+
+            // Scroll to the bottom of the chat
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+
+        // Allow sending message with Enter key
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Display messages on page load
+        displayMessages();
+    </script>
+
+</body>
+</html>
