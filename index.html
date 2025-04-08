@@ -71,7 +71,6 @@
         </div>
     </div>
 
-    <!-- Script should be placed at the end of the body -->
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
@@ -105,8 +104,12 @@
                 // Set the message data in Firebase
                 set(messageRef, {
                     text: message,
-                    sender: "User",  // Change this to a dynamic value if you have authentication
+                    sender: "User",  // You can dynamically set the sender later if you have user authentication
                     timestamp: newMessageKey
+                }).then(() => {
+                    console.log("Message sent!");
+                }).catch(error => {
+                    console.error("Error sending message:", error);
                 });
 
                 // Clear the input field
@@ -126,6 +129,7 @@
 
                 snapshot.forEach((childSnapshot) => {
                     const message = childSnapshot.val();
+                    console.log("Message:", message); // Debug log to check data
                     messages.push(message);
                 });
 
