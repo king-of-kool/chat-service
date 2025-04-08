@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat Room</title>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -161,11 +167,22 @@
     </div>
 
     <script>
-        // Store users in memory for demo purposes
-        const users = [
-            { username: "testuser", password: "password123" },
-            { username: "john_doe", password: "johnpassword" }
-        ];
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsLbyZONGRIVbB8sU9YrzAzAc_BX9yKVk",
+            authDomain: "greenhill-chat-service.firebaseapp.com",
+            databaseURL: "https://greenhill-chat-service-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "greenhill-chat-service",
+            storageBucket: "greenhill-chat-service.firebasestorage.app",
+            messagingSenderId: "410106930178",
+            appId: "1:410106930178:web:a5cf1a9b3e152f1959731b",
+            measurementId: "G-7GEN0DF5KE"
+        };
+
+        // Initialize Firebase App
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
 
         // References to HTML elements
         const authContainer = document.getElementById('auth-container');
@@ -200,30 +217,33 @@
                 return;
             }
 
-            // Sign Up
+            // Firebase Auth Sign-Up
             if (loginButton.textContent === "Sign Up") {
-                if (users.some(user => user.username === username)) {
-                    alert("Username already exists. Please choose another.");
-                } else {
-                    users.push({ username, password });
-                    currentUser = { username };
-                    localStorage.setItem('username', username);
-                    alert("Sign-up successful! You can now log in.");
-                    resetAuthForm();
-                    showChat();
-                }
+                auth.createUserWithEmailAndPassword(username + "@chat.com", password)
+                    .then((userCredential) => {
+                        const user = userCredential.user;
+                        currentUser = { username };
+                        localStorage.setItem('username', username);
+                        alert("Sign-up successful! You can now log in.");
+                        resetAuthForm();
+                        showChat();
+                    })
+                    .catch((error) => {
+                        alert("Error during sign up: " + error.message);
+                    });
             } else {
-                // Login
-                const user = users.find(user => user.username === username && user.password === password);
-                if (user) {
-                    currentUser = user;
-                    localStorage.setItem('username', username);
-                    alert("Login successful!");
-                    resetAuthForm();
-                    showChat();
-                } else {
-                    alert("Invalid username or password.");
-                }
+                // Firebase Auth Login
+                auth.signInWithEmailAndPassword(username + "@chat.com", password)
+                    .then((userCredential) => {
+                        currentUser = { username };
+                        localStorage.setItem('username', username);
+                        alert("Login successful!");
+                        resetAuthForm();
+                        showChat();
+                    })
+                    .catch((error) => {
+                        alert("Invalid username or password.");
+                    });
             }
         });
 
@@ -251,39 +271,44 @@
                     timestamp: new Date().getTime()
                 };
 
-                let messages = JSON.parse(localStorage.getItem('messages')) || [];
-                messages.push(message);
-                localStorage.setItem('messages', JSON.stringify(messages));
+                // Push the message to Firebase Realtime Database
+                const messagesRef = db.ref('messages');
+                messagesRef.push(message);
 
                 messageInput.value = ''; // Clear the input
-                loadMessages();
             }
         });
 
-        // Display messages in the chat box
+        // Load messages from Firebase Realtime Database
         function loadMessages() {
-            const messages = JSON.parse(localStorage.getItem('messages')) || [];
-            chatBox.innerHTML = ''; // Clear the chat box
-            messages.sort((a, b) => a.timestamp - b.timestamp); // Sort messages by timestamp
-            messages.forEach(message => {
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('message');
-                if (message.sender === currentUser.username) {
-                    messageElement.classList.add('sender');
-                }
-                messageElement.textContent = `${message.sender}: ${message.text}`;
-                chatBox.appendChild(messageElement);
+            const messagesRef = db.ref('messages');
+            messagesRef.on('value', (snapshot) => {
+                const messages = snapshot.val() || {};
+                chatBox.innerHTML = ''; // Clear the chat box
+                const sortedMessages = Object.values(messages).sort((a, b) => a.timestamp - b.timestamp); // Sort messages by timestamp
+                sortedMessages.forEach((message) => {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('message');
+                    if (message.sender === currentUser.username) {
+                        messageElement.classList.add('sender');
+                    }
+                    messageElement.textContent = `${message.sender}: ${message.text}`;
+                    chatBox.appendChild(messageElement);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
             });
-            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
         }
 
-        // Check if user is already logged in
-        const savedUsername = localStorage.getItem('username');
-        if (savedUsername) {
-            currentUser = { username: savedUsername };
-            resetAuthForm();
-            showChat();
-        }
+        // Check if user is already logged in with Firebase
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = { username: user.email.split('@')[0] }; // Extract username from email
+                resetAuthForm();
+                showChat();
+            } else {
+                authContainer.style.display = 'flex';
+            }
+        });
     </script>
 
 </body>
