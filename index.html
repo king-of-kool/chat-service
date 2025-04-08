@@ -67,7 +67,7 @@
         <div class="chat-box" id="chat-box"></div>
         <div class="input-area">
             <input type="text" id="message-input" placeholder="Type a message..." />
-            <button onclick="sendMessage()">Send</button>
+            <button id="send-button">Send</button>
         </div>
     </div>
 
@@ -92,7 +92,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Function to send message to Firebase Realtime Database
+        // Send message function
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const message = messageInput.value.trim();
@@ -100,17 +100,20 @@
             if (message) {
                 const newMessageKey = Date.now(); // Use timestamp as unique key
                 const messageRef = ref(db, 'messages/' + newMessageKey);
+
+                // Set the message data in Firebase
                 set(messageRef, {
                     text: message,
-                    sender: "User", // Replace with actual user identifier if needed
+                    sender: "User",  // Change this to a dynamic value if you have authentication
                     timestamp: newMessageKey
                 });
 
-                messageInput.value = ''; // Clear input field
+                // Clear the input field
+                messageInput.value = '';
             }
         }
 
-        // Function to display messages
+        // Display messages function
         function displayMessages() {
             const chatBox = document.getElementById('chat-box');
             const messagesRef = ref(db, 'messages');
@@ -132,6 +135,9 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             });
         }
+
+        // Event listener for the send button
+        document.getElementById('send-button').addEventListener('click', sendMessage);
 
         // Initialize chat by displaying messages
         displayMessages();
