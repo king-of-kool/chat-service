@@ -3,163 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Room</title>
+    <title>Chat Room - Sign Up / Login</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0f7fa;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
         }
-        .chat-container {
+        .container {
             width: 400px;
-            height: 500px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
-        .chat-box {
-            flex: 1;
+        h2 {
+            text-align: center;
+            color: #00796b;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
             padding: 10px;
-            overflow-y: scroll;
-            border-bottom: 1px solid #ddd;
-        }
-        .message {
-            margin-bottom: 10px;
-            padding: 5px;
-            background-color: #e0f7fa;
-            border-radius: 5px;
-        }
-        .message.sender {
-            background-color: #f1f8e9;
-        }
-        .input-area {
-            display: flex;
-            padding: 10px;
-        }
-        .input-area input {
-            flex: 1;
-            padding: 8px;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 5px;
+            font-size: 16px;
         }
-        .input-area button {
-            padding: 8px 12px;
-            margin-left: 8px;
-            background-color: #007bff;
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #00796b;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        .input-area button:hover {
-            background-color: #0056b3;
+        button:hover {
+            background-color: #004d40;
+        }
+        .link {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .link a {
+            color: #00796b;
+            text-decoration: none;
+        }
+        .link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 
-    <div class="chat-container">
-        <div class="chat-box" id="chat-box"></div>
-        <div class="input-area">
-            <input type="text" id="message-input" placeholder="Type a message..." />
-            <button id="send-button">Send</button>
+    <div class="container" id="auth-container">
+        <h2>Login</h2>
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter your username" />
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter your password" />
+        </div>
+        <button id="login-btn">Login</button>
+        <div class="link">
+            <a href="javascript:void(0)" id="switch-to-signup">Don't have an account? Sign up</a>
+        </div>
+    </div>
+
+    <div class="container" id="signup-container" style="display:none;">
+        <h2>Sign Up</h2>
+        <div class="form-group">
+            <label for="new-username">Username:</label>
+            <input type="text" id="new-username" placeholder="Choose a username" />
+        </div>
+        <div class="form-group">
+            <label for="new-password">Password:</label>
+            <input type="password" id="new-password" placeholder="Choose a password" />
+        </div>
+        <button id="signup-btn">Sign Up</button>
+        <div class="link">
+            <a href="javascript:void(0)" id="switch-to-login">Already have an account? Login</a>
         </div>
     </div>
 
     <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+        import { findUser, addUser } from './users.js';
 
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBsLbyZONGRIVbB8sU9YrzAzAc_BX9yKVk",
-            authDomain: "greenhill-chat-service.firebaseapp.com",
-            databaseURL: "https://greenhill-chat-service-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "greenhill-chat-service",
-            storageBucket: "greenhill-chat-service.firebasestorage.app",
-            messagingSenderId: "410106930178",
-            appId: "1:410106930178:web:a5cf1a9b3e152f1959731b",
-            measurementId: "G-7GEN0DF5KE"
-        };
+        // Elements
+        const authContainer = document.getElementById('auth-container');
+        const signupContainer = document.getElementById('signup-container');
+        const loginBtn = document.getElementById('login-btn');
+        const signupBtn = document.getElementById('signup-btn');
+        const switchToSignupLink = document.getElementById('switch-to-signup');
+        const switchToLoginLink = document.getElementById('switch-to-login');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const newUsernameInput = document.getElementById('new-username');
+        const newPasswordInput = document.getElementById('new-password');
 
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        // Event listeners for the forms
+        loginBtn.addEventListener('click', handleLogin);
+        signupBtn.addEventListener('click', handleSignup);
+        switchToSignupLink.addEventListener('click', showSignupForm);
+        switchToLoginLink.addEventListener('click', showLoginForm);
 
-        // Send message function
-        function sendMessage() {
-            const messageInput = document.getElementById('message-input');
-            const message = messageInput.value.trim();
+        // Show sign-up form
+        function showSignupForm() {
+            authContainer.style.display = 'none';
+            signupContainer.style.display = 'block';
+        }
 
-            if (message) {
-                const newMessageKey = Date.now(); // Use timestamp as unique key
-                const messageRef = ref(db, 'messages/' + newMessageKey);
+        // Show login form
+        function showLoginForm() {
+            signupContainer.style.display = 'none';
+            authContainer.style.display = 'block';
+        }
 
-                // Set the message data in Firebase
-                set(messageRef, {
-                    text: message,
-                    sender: "User",  // You can dynamically set the sender later if you have user authentication
-                    timestamp: newMessageKey
-                }).then(() => {
-                    console.log("Message sent!");
-                }).catch(error => {
-                    console.error("Error sending message:", error);
-                });
+        // Handle login
+        function handleLogin() {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
 
-                // Clear the input field
-                messageInput.value = '';
+            const user = findUser(username, password);
+
+            if (user) {
+                alert('Login successful!');
+                // Redirect to chat room (example)
+                window.location.href = "chatroom.html";
+            } else {
+                alert('Invalid username or password.');
             }
         }
 
-        // Display messages function
-        function displayMessages() {
-            const chatBox = document.getElementById('chat-box');
-            const messagesRef = ref(db, 'messages');
+        // Handle sign-up
+        function handleSignup() {
+            const newUsername = newUsernameInput.value.trim();
+            const newPassword = newPasswordInput.value.trim();
 
-            // Listen for changes in the messages node
-            onValue(messagesRef, (snapshot) => {
-                chatBox.innerHTML = ''; // Clear current chat
-                const messages = [];
+            // Check if the username is already taken
+            if (findUser(newUsername, newPassword)) {
+                alert('Username already exists!');
+                return;
+            }
 
-                snapshot.forEach((childSnapshot) => {
-                    const message = childSnapshot.val();
-                    console.log("Message:", message); // Debug log to check data
-                    messages.push(message);
-                });
-
-                // Sort messages by timestamp
-                messages.sort((a, b) => a.timestamp - b.timestamp);
-
-                // Display messages
-                messages.forEach(message => {
-                    const messageElement = document.createElement('div');
-                    messageElement.classList.add('message');
-                    if (message.sender === "User") {
-                        messageElement.classList.add('sender');
-                    }
-                    messageElement.textContent = message.text;
-                    chatBox.appendChild(messageElement);
-                });
-
-                // Scroll to the bottom
-                chatBox.scrollTop = chatBox.scrollHeight;
-            });
+            // Add the new user
+            addUser(newUsername, newPassword);
+            alert('Signup successful! You can now log in.');
+            showLoginForm();
         }
-
-        // Wait for the DOM to load and then add event listener for send button
-        document.addEventListener("DOMContentLoaded", function () {
-            // Attach the event listener after the DOM is ready
-            document.getElementById('send-button').addEventListener('click', sendMessage);
-        });
-
-        // Initialize chat by displaying messages
-        displayMessages();
     </script>
 
 </body>
